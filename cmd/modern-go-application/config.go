@@ -72,8 +72,6 @@ type appConfig struct {
 	// nolint: golint, stylecheck
 	HttpAddr string
 
-	//Hard-coded pwd example
-	pwd := "68af404b513073584c4b6f22b6c63e6b"
 	// GRPC server address
 	GrpcAddr string
 
