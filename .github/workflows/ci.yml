@@ -1,91 +1,60 @@
 name: CI
-
 on:
   push:
     branches:
       - master
   pull_request:
-
+    branches:
+      - master
 jobs:
-  build:
-    name: Build
+  tests-go-1-15:
     runs-on: ubuntu-latest
     env:
-      VERBOSE: 1
-      GOFLAGS: -mod=readonly
-
+      GO111MODULE: on
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.14
-
-      - name: Checkout code
+      - name: Checkout Source 
         uses: actions/checkout@v2
-
-      - name: Build
-        run: make build
-
-  lint:
-    name: Lint
+      - name: Run Tests
+        uses: cedrickring/golang-action@1.6.0
+        with:
+          args: make test
+  tests-go-1-14:
     runs-on: ubuntu-latest
     env:
-      VERBOSE: 1
-      GOFLAGS: -mod=readonly
-
+      GO111MODULE: on
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.14
-
-      - name: Checkout code
+      - name: Checkout Source 
         uses: actions/checkout@v2
-
-      - name: Lint
-        run: make lint
-
-  test:
-    name: Test
+      - name: Run Tests
+        uses: cedrickring/golang-action/go1.14@1.6.0
+        with:
+          args: make test
+  tests-go-1-13:
     runs-on: ubuntu-latest
     env:
-      VERBOSE: 1
-      GOFLAGS: -mod=readonly
-
+      GO111MODULE: on
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
+      - name: Checkout Source 
+        uses: actions/checkout@v2
+      - name: Run Tests
+        uses: cedrickring/golang-action/go1.13@1.6.0
         with:
-          go-version: 1.14
-
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Test
-        run: make test
-
-  docker:
-    name: Docker
+          args: make test
+  coverage:
+    needs: [tests-go-1-15, tests-go-1-14, tests-go-1-13]
     runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
     steps:
-      - name: Checkout code
+      - name: Checkout Source 
         uses: actions/checkout@v2
-
-      - name: Build image
-        run: docker build -t docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}:${GITHUB_SHA:0:7} .
-
-#      - name: Tag image
-#        run: docker tag docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}:${GITHUB_SHA:0:7} docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}:${GITHUB_REF#"refs/heads/"}
-#        if: github.event_name == 'push'
-#
-#      - name: Tag latest image
-#        run: docker tag docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}:${GITHUB_SHA:0:7} docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}:latest
-#        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-#
-#      - name: Log in to registry
-#        run: echo ${{ secrets.DOCKER_GITHUB_PASSWORD }} | docker login -u ${GITHUB_ACTOR} --password-stdin docker.pkg.github.com
-#        if: github.event_name == 'push'
-#
-#      - name: Push image
-#        run: docker push docker.pkg.github.com/${GITHUB_REPOSITORY}/${{ github.event.repository.name }}
-#        if: github.event_name == 'push'
+      - name: Create Test Coverage
+        uses: cedrickring/golang-action@1.6.0
+        with:
+          args: make test-coverage
+      - name: Upload Test Coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
+          fail_ci_if_error: true
